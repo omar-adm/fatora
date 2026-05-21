@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fatora — Daily Log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ════════════════ AUTH ════════════════ -->
+<div id="screen-auth" class="screen active">
+  <div class="auth-bg">
+    <div class="auth-card">
+      <div class="logo-mark">F</div>
+      <h1 class="auth-title">Fatora Daily Log</h1>
+      <p class="auth-sub">Sign in to record your daily number</p>
+      <button id="btn-google-signin" class="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" alt="G" />
+        Continue with Google
+      </button>
+      <p class="auth-note">New users are added automatically on first sign-in.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ APP (USER) ════════════════ -->
+<div id="screen-app" class="screen">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">Fato<span>ra</span></div>
+      <span id="role-badge" class="role-badge user">User</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-menu-wrap">
+        <div id="user-avatar" class="user-avatar"></div>
+        <div id="user-menu" class="user-menu">
+          <div class="user-menu-header">
+            <div id="user-name"  class="user-menu-name"></div>
+            <div id="user-email" class="user-menu-email"></div>
+          </div>
+          <button id="menu-admin"   class="user-menu-item hidden">🛡 Admin Dashboard</button>
+          <button id="menu-refresh" class="user-menu-item hidden">↻ Refresh Logs</button>
+          <button id="menu-logout"  class="user-menu-item danger">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ── Entry card ── -->
+    <section class="card entry-card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Today's Entry</h2>
+          <p class="card-sub" id="entry-date-label"></p>
+        </div>
+      </div>
+
+      <div class="entry-single-wrap">
+        <div class="entry-row">
+          <div class="entry-who">
+            <span class="entry-avatar-dot"></span>
+            <span id="entry-user-name" class="entry-name"></span>
+          </div>
+          <div class="entry-date-control">
+            <label for="entry-date-picker" class="entry-date-label-small">Date</label>
+            <input id="entry-date-picker" class="date-picker" type="date" />
+          </div>
+          <input
+            id="entry-value"
+            class="value-input-large"
+            type="number"
+            step="any"
+            placeholder="Enter number…"
+          />
+          <button id="btn-save-entry" class="btn-primary">Save</button>
+        </div>
+        <p id="entry-locked-note" class="entry-locked-note hidden"></p>
+      </div>
+    </section>
+
+    <!-- ── History card ── -->
+    <section class="card history-card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">My Log History</h2>
+          <p class="card-sub">Your entries by month — newest first</p>
+        </div>
+      </div>
+      <div id="history-wrap"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ════════════════ ADMIN ════════════════ -->
+<div id="screen-admin" class="screen">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button id="btn-admin-back" class="back-btn hidden">← Back</button>
+      <div class="topbar-logo">Fato<span>ra</span> <span class="admin-label">Admin</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="user-menu-wrap">
+        <div id="admin-avatar" class="user-avatar"></div>
+        <div id="admin-menu" class="user-menu">
+          <div class="user-menu-header">
+            <div id="admin-name"  class="user-menu-name"></div>
+            <div id="admin-email" class="user-menu-email"></div>
+          </div>
+          <button id="btn-admin-refresh" class="user-menu-item">↻ Refresh Logs</button>
+          <button id="btn-admin-logout"  class="user-menu-item danger">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-content">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">All Users' Logs</h2>
+          <p class="card-sub">Every user's daily entries — grouped by month</p>
+        </div>
+      </div>
+      <div id="admin-logs-wrap"><p class="loading-cell">Loading…</p></div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
