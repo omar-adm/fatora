@@ -21,7 +21,7 @@ export async function signInWithGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + window.location.pathname,
+      redirectTo: window.location.origin,
     },
   });
   if (error) throw error;
