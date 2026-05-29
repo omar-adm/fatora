@@ -127,7 +127,7 @@ async function loadEntryForDate(dateStr) {
         note.innerHTML = '🔒 Past month — entry cannot be edited.';
       }
     } else if (hrs < 12) {
-      // Within 12-hour edit window
+      // Current month + within 12-hour edit window
       input.disabled   = false;
       btn.disabled     = false;
       btn.textContent  = 'Update Entry';
@@ -139,19 +139,18 @@ async function loadEntryForDate(dateStr) {
         note.innerHTML = `⏱ You can edit this entry for ${hoursLeft} more hour(s).`;
       }
     } else {
-      // Past 12 hours — locked
+      // Past the 12-hour window — locked
       input.disabled   = true;
       btn.disabled     = true;
       btn.textContent  = 'Locked (>12h)';
       btn.dataset.mode = 'locked';
       if (note) {
-        note.classList.remove('hidden');
-        note.classList.remove('warning');
+        note.classList.remove('hidden', 'warning');
         note.innerHTML = '🔒 Entry locked — past the 12-hour edit window.';
       }
     }
   } else {
-    // No entry yet
+    // No entry yet — can add for any date in the current month
     input.value      = '';
     input.disabled   = !inCurrentMonth;
     btn.disabled     = !inCurrentMonth;
@@ -205,7 +204,7 @@ async function saveEntry() {
       await loadEntryForDate(selectedDate); return;
     }
     if (hoursSince(existing.created_at) >= 12) {
-      toast('Edit window expired.', 'error');
+      toast('Edit window expired (12h).', 'error');
       await loadEntryForDate(selectedDate); return;
     }
     ({ error } = await sb.from('daily_logs').update({ value }).eq('id', existing.id));
