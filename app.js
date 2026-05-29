@@ -109,16 +109,28 @@ async function loadEntryForDate(dateStr) {
     .eq('date', dateStr)
     .maybeSingle();
 
-  if (data?.value !== undefined) {
-    const hrs       = hoursSince(data.created_at);
-    const canEdit   = hrs < 12;
-    input.value     = data.value;
+  const inCurrentMonth = getMonthKey(dateStr) === today().slice(0, 7);
 
-    if (canEdit) {
+  if (data?.value !== undefined) {
+    // Entry exists
+    input.value = data.value;
+    const hrs = hoursSince(data.created_at);
+
+    if (!inCurrentMonth) {
+      // Past month — always locked
+      input.disabled   = true;
+      btn.disabled     = true;
+      btn.textContent  = 'Locked';
+      btn.dataset.mode = 'locked';
+      if (note) {
+        note.classList.remove('hidden', 'warning');
+        note.innerHTML = '🔒 Past month — entry cannot be edited.';
+      }
+    } else if (hrs < 12) {
       // Within 12-hour edit window
-      input.disabled = false;
-      btn.disabled   = false;
-      btn.textContent = 'Update Entry';
+      input.disabled   = false;
+      btn.disabled     = false;
+      btn.textContent  = 'Update Entry';
       btn.dataset.mode = 'update';
       if (note) {
         note.classList.remove('hidden');
@@ -128,9 +140,9 @@ async function loadEntryForDate(dateStr) {
       }
     } else {
       // Past 12 hours — locked
-      input.disabled = true;
-      btn.disabled   = true;
-      btn.textContent = 'Locked (>12h)';
+      input.disabled   = true;
+      btn.disabled     = true;
+      btn.textContent  = 'Locked (>12h)';
       btn.dataset.mode = 'locked';
       if (note) {
         note.classList.remove('hidden');
@@ -140,20 +152,27 @@ async function loadEntryForDate(dateStr) {
     }
   } else {
     // No entry yet
-    input.value    = '';
-    input.disabled = false;
-    btn.disabled   = false;
-    btn.textContent = dateStr === today() ? "Save Today's Log" : `Save ${fmtDate(dateStr)}`;
+    input.value      = '';
+    input.disabled   = !inCurrentMonth;
+    btn.disabled     = !inCurrentMonth;
+    btn.textContent  = dateStr === today() ? "Save Today's Log" : `Save ${fmtDate(dateStr)}`;
     btn.dataset.mode = 'create';
-    if (note) note.classList.add('hidden');
+    if (note) {
+      if (inCurrentMonth) {
+        note.classList.add('hidden');
+      } else {
+        note.classList.remove('hidden', 'warning');
+        note.innerHTML = '🔒 Past month — cannot add new entry.';
+      }
+    }
   }
 }
 
 async function saveEntry() {
-  const input  = document.getElementById('entry-value');
-  const val    = input.value.trim();
-  const btn    = document.getElementById('btn-save-entry');
-  const mode   = btn.dataset.mode;
+  const input = document.getElementById('entry-value');
+  const val   = input.value.trim();
+  const btn   = document.getElementById('btn-save-entry');
+  const mode  = btn.dataset.mode;
 
   if (val === '' || isNaN(parseFloat(val))) {
     toast('Please enter a number.', 'error'); return;
@@ -162,19 +181,30 @@ async function saveEntry() {
     toast('This entry is locked.', 'error'); return;
   }
 
+  // Block edits outside the current month
+  const inCurrentMonth = getMonthKey(selectedDate) === today().slice(0, 7);
+  if (!inCurrentMonth) {
+    toast('You can only edit entries in the current month.', 'error');
+    await loadEntryForDate(selectedDate); return;
+  }
+
   btn.disabled = true; btn.textContent = 'Saving…';
   const value = parseFloat(val);
 
   let error;
   if (mode === 'update') {
-    // Re-check the 12h window on the server-friendly side first
+    // Re-check the 12h window before updating
     const { data: existing } = await sb
       .from('daily_logs')
       .select('id, created_at')
       .eq('user_id', currentUser.id)
       .eq('date', selectedDate)
       .maybeSingle();
-    if (!existing || hoursSince(existing.created_at) >= 12) {
+    if (!existing) {
+      toast('Entry not found.', 'error');
+      await loadEntryForDate(selectedDate); return;
+    }
+    if (hoursSince(existing.created_at) >= 12) {
       toast('Edit window expired.', 'error');
       await loadEntryForDate(selectedDate); return;
     }
@@ -205,9 +235,9 @@ async function renderHistory() {
     .select('date, value')
     .eq('user_id', currentUser.id)
     .order('date', { ascending: false });
- 
+
   if (error) { toast(error.message, 'error'); return; }
- 
+
   const wrap = document.getElementById('history-wrap');
   if (!logs || logs.length === 0) {
     wrap.innerHTML = '<p class="empty-history">No history yet. Save your first log above.</p>';
@@ -218,51 +248,46 @@ async function renderHistory() {
   const monthsMap = {};
   logs.forEach(l => {
     const mk = getMonthKey(l.date);
-    if (!monthsMap[mk]) monthsMap[mk] = {};
-    monthsMap[mk][dayOf(l.date)] = l.value;
+    if (!monthsMap[mk]) monthsMap[mk] = [];
+    monthsMap[mk].push(l);
   });
-
   const sortedMonths = Object.keys(monthsMap).sort((a, b) => b.localeCompare(a));
 
   wrap.innerHTML = sortedMonths.map(mk => {
-    const days      = daysInMonth(mk);
-    const dayMap    = monthsMap[mk];
-    const total     = Object.values(dayMap).reduce((s, v) => s + Number(v), 0);
+    const entries   = monthsMap[mk].sort((a, b) => b.date.localeCompare(a.date));
+    const monthSum  = entries.reduce((s, l) => s + Number(l.value), 0);
     const isCurrent = isCurrentMonth(mk);
 
-    // Header: Day 1, Day 2, ... Day N, Total
-    const headRow = `
+    const rows = entries.map(l => `
       <tr>
-        ${Array.from({length: days}, (_, i) => {
-          const d = i + 1;
-          return `<th class="th-day">${d}</th>`;
-        }).join('')}
-        <th class="th-total">Total</th>
-      </tr>`;
+        <td class="td-date-cell">${fmtDate(l.date)}</td>
+        <td class="td-value has-value">${l.value}</td>
+      </tr>
+    `).join('');
 
-    // Values row
-    const valRow = `
-      <tr>
-        ${Array.from({length: days}, (_, i) => {
-          const d   = i + 1;
-          const v   = dayMap[d];
-          return `<td class="td-value ${v !== undefined ? 'has-value' : 'empty-value'}">
-            ${v !== undefined ? v : '<span class="dash">—</span>'}
-          </td>`;
-        }).join('')}
-        <td class="td-month-total">${total}</td>
+    const sumRow = `
+      <tr class="sum-row">
+        <td class="td-sum-label">Monthly Total</td>
+        <td class="td-grand-total">${monthSum}</td>
       </tr>`;
 
     return `
       <div class="month-block">
         <div class="month-header ${isCurrent ? 'current' : ''}">
           <span class="month-label">${fmtMonth(mk)}</span>
-          ${isCurrent ? '<span class="month-badge">Current Month</span>' : ''}
+          ${isCurrent
+            ? '<span class="month-badge">Current Month</span>'
+            : '<span class="month-badge locked-badge">🔒 Locked</span>'}
         </div>
         <div class="table-scroll">
-          <table class="history-table compact">
-            <thead>${headRow}</thead>
-            <tbody>${valRow}</tbody>
+          <table class="history-table simple">
+            <thead>
+              <tr>
+                <th class="th-person">Date</th>
+                <th class="th-date">Count</th>
+              </tr>
+            </thead>
+            <tbody>${rows}${sumRow}</tbody>
           </table>
         </div>
       </div>`;

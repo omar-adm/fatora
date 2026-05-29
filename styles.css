@@ -395,19 +395,86 @@ body {
   min-width: 400px;
 }
 
-/* Simple (user) history table — fits comfortably in 2-column grid */
+/* Simple (user) history table — vertical Date | Count list */
 .history-table.simple {
   min-width: 0;
+  width: 100%;
 }
 .history-table.simple .th-person,
 .history-table.simple .td-date-cell {
   min-width: 0;
-  padding: 12px 16px;
+  padding: 12px 20px;
+  text-align: left;
+  width: auto;
 }
 .history-table.simple .th-date,
 .history-table.simple .td-value {
-  padding: 12px 12px;
+  padding: 12px 20px;
+  text-align: right;
+  width: 100px;
+  white-space: nowrap;
 }
+.history-table.simple .td-value {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+}
+.history-table.simple .td-sum-label {
+  text-align: left;
+}
+.history-table.simple .td-grand-total {
+  text-align: right;
+}
+
+/* Compact calendar-style table (dates 1-31 as columns) */
+.history-table.compact { min-width: 0; }
+.history-table.compact .th-day {
+  padding: 8px 4px;
+  min-width: 32px;
+  text-align: center;
+  font-size: 11px; font-weight: 600;
+  color: var(--muted); background: var(--paper);
+  border-bottom: 1px solid var(--cream);
+}
+.history-table.compact .td-value {
+  padding: 12px 4px;
+  min-width: 32px;
+  font-size: 13px;
+}
+.history-table.compact .th-total {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 11px; font-weight: 700;
+  background: var(--gold-bg);
+  border-bottom: 1px solid var(--cream);
+  border-left: 2px solid var(--gold-light);
+  color: var(--ink);
+  letter-spacing: .07em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.history-table.compact .td-month-total {
+  padding: 12px 12px;
+  text-align: center;
+  background: var(--gold-bg);
+  border-left: 2px solid var(--gold-light);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Clickable cells in current month */
+.td-value.clickable {
+  cursor: pointer;
+  background: var(--gold-bg);
+  transition: background .15s, transform .1s;
+  position: relative;
+}
+.td-value.clickable:hover {
+  background: var(--gold-light);
+  transform: scale(1.05);
+}
+.td-value.clickable:active { transform: scale(.95); }
 
 .history-table thead tr { background: var(--paper); }
 
@@ -626,7 +693,7 @@ body {
   gap: 20px;
   align-items: start;
 }
- 
+
 @media (max-width: 768px) {
   #history-wrap {
     grid-template-columns: 1fr;
